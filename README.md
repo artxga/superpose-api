@@ -51,7 +51,7 @@ $$\text{Total variables} = 3 \text{ flujos} \times 2 \text{ rutas} = 6 \text{ qu
 
 ### Función de Costo Cuadrática
 1. **Término Lineal ($C_{i,k}$):** Suma del tiempo base de viaje de las aristas en la ruta candidata $k$ del flujo $i$.
-2. **Término Cuadrático ($P_e$):** Si dos flujos $i \neq j$ comparten una arista $e$, se penaliza la congestión con un factor acoplado $P_e \cdot w_{ij} \cdot x_{i,k} \cdot x_{j,k'}$, donde $w_{ij} = (v_i + v_j) / 50$ refleja el volumen conjunto de vehículos.
+2. **Término Cuadrático ($P_e$):** Si dos flujos $i \neq j$ comparten una arista $e$, se penaliza la congestión con un factor acoplado $P_e \cdot w_{ij} \cdot x_{i,k} \cdot x_{j,k'}$, donde $w_{ij} = (v_i + v_j) / 20$ refleja el volumen conjunto de vehículos.
 3. **Restricción One-Hot:** Cada flujo debe seleccionar exactamente una ruta:
    $$\sum_{k=0}^{1} x_{i,k} = 1 \quad \forall i \in \{0, 1, 2\}$$
    Convertida a QUBO mediante `QuadraticProgramToQubo(penalty=100.0)`.
@@ -61,6 +61,23 @@ $$\text{Total variables} = 3 \text{ flujos} \times 2 \text{ rutas} = 6 \text{ qu
 - `TRAFFIC_JAM`: `tiempo = base_time * 1.8`, `penalización = base_penalty * 4.0`
 - `ROADWORK`: `tiempo = base_time * 1.5`, `penalización = base_penalty * 6.0`
 - `ACCIDENT`: `tiempo = base_time + 5000.0` (fuerza matemáticamente al circuito QAOA a desestimar rutas afectadas).
+
+### Mapa de Lima y Parámetros Geográficos
+Los nodos representan distritos de Lima (los IDs de la API no cambian) y cada arista se parametriza con longitud, velocidad y carriles:
+
+| Nodo | Distrito | Lat, Lon |
+|---|---|---|
+| `NODO_A` | Callao | -12.057, -77.118 |
+| `NODO_B` | Los Olivos | -11.990, -77.070 |
+| `NODO_C` | Cercado de Lima | -12.046, -77.043 |
+| `NODO_D` | San Isidro | -12.098, -77.037 |
+| `NODO_E` | San Juan de Lurigancho | -12.003, -77.008 |
+| `NODO_F` | La Molina | -12.083, -76.942 |
+
+- `length_km = haversine(u, v) × 1.3` (factor de sinuosidad vial; las coordenadas son aproximadas).
+- `base_time (min) = length_km / speed_kmh × 60` (tiempo en flujo libre).
+- `base_penalty = length_km × 2.0` y `capacity = lanes × 15` vehículos (escala de demo).
+- Los eventos modifican `base_time` y `base_penalty` como se indica arriba; la congestión entre flujos la resuelve QAOA.
 
 ---
 
@@ -77,16 +94,22 @@ Obtiene el estado actual del grafo de tráfico en memoria: nodos, aristas, tiemp
 ```json
 {
   "nodes": ["NODO_A", "NODO_B", "NODO_C", "NODO_D", "NODO_E", "NODO_F"],
+  "node_details": [
+    {"id": "NODO_A", "label": "Callao", "lat": -12.057, "lon": -77.118}
+  ],
   "edges": [
     {
       "source": "NODO_A",
       "target": "NODO_C",
-      "base_time": 7.0,
-      "current_time": 7.0,
-      "current_penalty": 12.0,
-      "capacity": 40,
+      "length_km": 10.72,
+      "speed_kmh": 50.0,
+      "lanes": 3,
+      "base_time": 12.86,
+      "current_time": 12.86,
+      "current_penalty": 21.44,
+      "capacity": 45,
       "load": 1.0,
-      "saturation": 0.025,
+      "saturation": 0.0222,
       "event": "NORMAL"
     }
   ],
@@ -102,9 +125,13 @@ Obtiene el estado actual del grafo de tráfico en memoria: nodos, aristas, tiemp
 
 #### Descripción de Campos
 - `nodes` *(list[string])*: Identificadores de los 6 nodos de la red.
-- `edges[].base_time` *(float)*: Tiempo nominal en minutos sin tráfico.
+- `node_details[]` *(object)*: `id`, `label` (distrito de Lima), `lat`, `lon`.
+- `edges[].length_km` *(float)*: Longitud vial estimada de la arista.
+- `edges[].speed_kmh` *(float)*: Velocidad en flujo libre.
+- `edges[].lanes` *(integer)*: Número de carriles.
+- `edges[].base_time` *(float)*: Tiempo en minutos en flujo libre (`length_km / speed_kmh × 60`).
 - `edges[].current_time` *(float)*: Tiempo actual modificado por incidentes viales.
-- `edges[].capacity` *(integer)*: Capacidad vehicular recomendada antes de saturación.
+- `edges[].capacity` *(integer)*: Capacidad vehicular (`lanes × 15`) antes de saturación.
 - `edges[].load` *(float)*: Carga actual de vehículos en tránsito según la última optimización.
 - `edges[].saturation` *(float)*: Razón `load / capacity` ($0.0$ a $\ge 1.0$).
 - `edges[].event` *(string)*: `NORMAL` | `TRAFFIC_JAM` | `ROADWORK` | `ACCIDENT`.
@@ -157,23 +184,33 @@ Ejecuta la optimización híbrida cuántica QAOA comparándola con el enrutamien
   "origin": "NODO_A",
   "destination": "NODO_F",
   "optimized": {
-    "route": ["NODO_A", "NODO_C", "NODO_D", "NODO_F"],
-    "travel_time": 18.0,
-    "congestion_penalty": 6.3,
-    "estimated_time": 24.3
+    "route": [
+      "NODO_A",
+      "NODO_C",
+      "NODO_E",
+      "NODO_F"
+    ],
+    "travel_time": 54.21,
+    "congestion_penalty": 0.0,
+    "estimated_time": 54.21
   },
   "selfish": {
-    "route": ["NODO_A", "NODO_C", "NODO_D", "NODO_F"],
-    "travel_time": 18.0,
-    "congestion_penalty": 13.74,
-    "estimated_time": 31.74
+    "route": [
+      "NODO_A",
+      "NODO_C",
+      "NODO_D",
+      "NODO_F"
+    ],
+    "travel_time": 38.25,
+    "congestion_penalty": 33.232,
+    "estimated_time": 71.482
   },
   "comparison": {
-    "user_time_saved": 7.44,
-    "user_improvement_pct": 23.44,
-    "system_cost_optimized": 66.6,
-    "system_cost_selfish": 80.48,
-    "system_improvement_pct": 17.25
+    "user_time_saved": 17.272,
+    "user_improvement_pct": 24.16,
+    "system_cost_optimized": 138.77,
+    "system_cost_selfish": 174.304,
+    "system_improvement_pct": 20.39
   },
   "flows": [
     {
@@ -181,66 +218,109 @@ Ejecuta la optimización híbrida cuántica QAOA comparándola con el enrutamien
       "origin": "NODO_A",
       "destination": "NODO_F",
       "vehicles": 1,
-      "qaoa_route": ["NODO_A", "NODO_C", "NODO_D", "NODO_F"],
-      "selfish_route": ["NODO_A", "NODO_C", "NODO_D", "NODO_F"]
+      "qaoa_route": [
+        "NODO_A",
+        "NODO_C",
+        "NODO_E",
+        "NODO_F"
+      ],
+      "selfish_route": [
+        "NODO_A",
+        "NODO_C",
+        "NODO_D",
+        "NODO_F"
+      ]
     },
     {
       "name": "fondo_1",
       "origin": "NODO_B",
       "destination": "NODO_F",
       "vehicles": 20,
-      "qaoa_route": ["NODO_B", "NODO_D", "NODO_F"],
-      "selfish_route": ["NODO_B", "NODO_D", "NODO_F"]
+      "qaoa_route": [
+        "NODO_B",
+        "NODO_D",
+        "NODO_F"
+      ],
+      "selfish_route": [
+        "NODO_B",
+        "NODO_E",
+        "NODO_F"
+      ]
     },
     {
       "name": "fondo_2",
       "origin": "NODO_A",
       "destination": "NODO_E",
       "vehicles": 30,
-      "qaoa_route": ["NODO_A", "NODO_B", "NODO_E"],
-      "selfish_route": ["NODO_A", "NODO_C", "NODO_E"]
+      "qaoa_route": [
+        "NODO_A",
+        "NODO_B",
+        "NODO_E"
+      ],
+      "selfish_route": [
+        "NODO_A",
+        "NODO_C",
+        "NODO_E"
+      ]
     }
   ],
   "edge_loads": [
     {
       "source": "NODO_A",
       "target": "NODO_C",
-      "capacity": 40,
+      "capacity": 45,
       "event": "NORMAL",
       "vehicles_optimized": 1,
-      "saturation_optimized": 0.025,
+      "saturation_optimized": 0.0222,
       "vehicles_selfish": 31,
-      "saturation_selfish": 0.775
+      "saturation_selfish": 0.6889
+    },
+    {
+      "source": "NODO_A",
+      "target": "NODO_B",
+      "capacity": 30,
+      "event": "NORMAL",
+      "vehicles_optimized": 30,
+      "saturation_optimized": 1.0,
+      "vehicles_selfish": 0,
+      "saturation_selfish": 0.0
     }
   ],
   "quantum_telemetry": {
     "qubits_used": 6,
-    "optimal_bitstring": "101001",
-    "variables": ["x_0_0", "x_0_1", "x_1_0", "x_1_1", "x_2_0", "x_2_1"],
+    "optimal_bitstring": "010101",
+    "variables": [
+      "x_0_0",
+      "x_0_1",
+      "x_1_0",
+      "x_1_1",
+      "x_2_0",
+      "x_2_1"
+    ],
     "top_probabilities": [
       {
-        "bitstring": "100110",
-        "probability": 0.01031,
-        "fval": 67.44,
-        "feasible": true
+        "bitstring": "000010",
+        "probability": 0.01869,
+        "fval": 24.8418,
+        "feasible": false
       }
     ],
-    "execution_time_ms": 178.88,
+    "execution_time_ms": 184.22,
     "solver_used": "QAOA",
     "feasible": true,
-    "qubo_scale": 1.0,
+    "qubo_scale": 0.86436,
     "note": null
   },
-  "total_time_ms": 179.33
+  "total_time_ms": 185.38
 }
 ```
 
 #### Interpretación de Resultados y Comparativa
-- **Ruta Egoísta (Dijkstra):** Cada conductor toma la ruta con menor tiempo base individual sin coordinarse. En el ejemplo, el usuario y el `fondo_2` eligen pasar por `NODO_A → NODO_C`, congestionando la vía central con 31 vehículos (saturación al 77.5%).
-- **Ruta Optimizada (QAOA):** El algoritmo cuántico desacopla las trayectorias enviando al `fondo_2` por la vía periférica `A → B → E`. Esto ahorra un **23.44% de tiempo al usuario** y disminuye el costo global del sistema en un **17.25%**.
+- **Ruta Egoísta (Dijkstra):** Cada conductor toma la ruta de menor tiempo individual sin coordinarse. En el ejemplo, el usuario y el `fondo_2` pasan por `NODO_A → NODO_C` (31 vehículos, 69% de saturación) y el usuario sigue por la vía central `C → D → F`, donde coincide con otros flujos y acumula congestión.
+- **Ruta Optimizada (QAOA):** El algoritmo cuántico desacopla las trayectorias: el `fondo_2` se desvía por la periférica `A → B → E` y el `fondo_1` por `B → D → F`, y el usuario toma `A → C → E → F`, más larga pero sin congestión. Aunque su tiempo de viaje base es mayor, el **tiempo estimado baja un 24.16%** (de 71.48 a 54.21 min) y el costo global del sistema baja un **20.39%**.
 - **Telemetría Cuántica:**
-  - `optimal_bitstring`: `101001` descompuesto en pares `[10][10][01]` indica que el usuario tomó la Ruta 1, el fondo 1 la Ruta 1, y el fondo 2 la Ruta 2.
-  - `execution_time_ms`: Tiempo de ejecución del algoritmo cuántico en simulador (~180 ms).
+  - `optimal_bitstring`: `010101` descompuesto en pares `[01][01][01]` indica que los tres flujos tomaron su Ruta 2 (la candidata alternativa).
+  - `execution_time_ms`: Tiempo de ejecución del algoritmo cuántico en simulador (~170 ms). El resultado es reproducible (semilla y punto inicial fijos).
   - `solver_used`: Identifica si la solución provino del circuito variacional `QAOA` o del fallback exacto `NumPyMinimumEigensolver`.
 
 #### Ejemplo cURL

@@ -57,19 +57,34 @@ def test_accident_avoided(client):
     assert body["quantum_telemetry"]["feasible"]
 
 
+def _edge(topo, a, b):
+    return next(e for e in topo["edges"] if (e["source"], e["target"]) == (a, b))
+
+
 def test_events_report_and_reset(client):
+    base = _edge(client.get("/api/v1/topology").json(), "NODO_B", "NODO_D")
     r = client.post("/api/v1/events/report", json={"source": "NODO_B", "target": "NODO_D", "event_type": "TRAFFIC_JAM"}).json()
-    e = next(e for e in r["edges"] if (e["source"], e["target"]) == ("NODO_B", "NODO_D"))
-    assert e["current_time"] == pytest.approx(8 * 1.8) and e["current_penalty"] == pytest.approx(8 * 4)
+    e = _edge(r, "NODO_B", "NODO_D")
+    assert e["current_time"] == pytest.approx(base["base_time"] * 1.8) and e["current_penalty"] == pytest.approx(base["current_penalty"] * 4)
     assert r["active_events"]
     r = client.post("/api/v1/events/reset").json()
     assert r["active_events"] == []
 
 
 def test_accident_time(client):
+    base = _edge(client.get("/api/v1/topology").json(), "NODO_B", "NODO_D")
     r = client.post("/api/v1/events/report", json={"source": "NODO_B", "target": "NODO_D", "event_type": "ACCIDENT"}).json()
-    e = next(e for e in r["edges"] if (e["source"], e["target"]) == ("NODO_B", "NODO_D"))
-    assert e["current_time"] == pytest.approx(5008.0)
+    e = _edge(r, "NODO_B", "NODO_D")
+    assert e["current_time"] == pytest.approx(base["base_time"] + 5000.0)
+
+
+def test_geometry_derived_values(client):
+    topo = client.get("/api/v1/topology").json()
+    assert {n["id"] for n in topo["node_details"]} == set(topo["nodes"])
+    assert all(n["lat"] < -11 and n["lon"] < -76 for n in topo["node_details"])  # Lima
+    for e in topo["edges"]:
+        assert e["length_km"] > 0 and e["lanes"] >= 1
+        assert e["base_time"] == pytest.approx(e["length_km"] / e["speed_kmh"] * 60, abs=0.01)
 
 
 def test_errors(client):

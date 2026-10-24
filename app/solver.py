@@ -11,6 +11,7 @@ from qiskit_aer import AerSimulator
 from qiskit_aer.primitives import SamplerV2  # V1 `Sampler` ya no es compatible con Qiskit 2.x / qiskit-algorithms 0.4
 from qiskit_algorithms import NumPyMinimumEigensolver, QAOA
 from qiskit_algorithms.optimizers import COBYLA
+from qiskit_algorithms.utils import algorithm_globals
 from qiskit_optimization import QuadraticProgram
 from qiskit_optimization.algorithms import MinimumEigenOptimizer, OptimizationResultStatus
 from qiskit_optimization.converters import QuadraticProgramToQubo
@@ -63,8 +64,11 @@ class Sampler(SamplerV2):
 
 
 def _qaoa() -> QAOA:
+    # Reproducibilidad: semilla global (punto inicial/COBYLA) + punto inicial fijo
+    algorithm_globals.random_seed = config.SAMPLER_SEED
     sampler = Sampler(default_shots=config.SAMPLER_SHOTS, seed=config.SAMPLER_SEED)
-    return QAOA(sampler=sampler, optimizer=COBYLA(maxiter=config.COBYLA_MAXITER), reps=config.QAOA_REPS)
+    return QAOA(sampler=sampler, optimizer=COBYLA(maxiter=config.COBYLA_MAXITER), reps=config.QAOA_REPS,
+                initial_point=[0.5] * (2 * config.QAOA_REPS))
 
 
 def _top(result) -> list[dict]:
