@@ -26,6 +26,7 @@ uvicorn app.main:app --reload --port 8000
 - **Swagger UI interactivo:** [http://localhost:8000/docs](http://localhost:8000/docs)
 - **ReDoc alternativo:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
 - **Colección Postman:** Archivo listo para importar en [superpose_postman_collection.json](file:///Volumes/HIKSEMI%20Media/Repos/Projects/ibm-quantum/superpose_postman_collection.json)
+- **Repo Frontend:** https://github.com/artxga/superpose-front
 
 ### Ejecución de Pruebas Automatizadas
 ```bash
@@ -40,14 +41,14 @@ pytest -v
 En lugar de asignar qubits ineficientemente por arista ($|E| \gg 6$), Superpose extrae las $K=2$ rutas candidatas más cortas (`networkx.shortest_simple_paths`) para $N=3$ flujos de tráfico concurrentes (1 usuario + 2 flujos de fondo):
 $$\text{Total variables} = 3 \text{ flujos} \times 2 \text{ rutas} = 6 \text{ qubits } (x_{0,0}, x_{0,1}, x_{1,0}, x_{1,1}, x_{2,0}, x_{2,1})$$
 
-| Qubit | Variable | Flujo | Significado |
-|---|---|---|---|
-| **q0** | `x_0_0` | Usuario principal | `1` si toma la Ruta 1 (más rápida individualmente) |
-| **q1** | `x_0_1` | Usuario principal | `1` si toma la Ruta 2 (vía alternativa) |
-| **q2** | `x_1_0` | Flujo de Fondo 1 | `1` si Fondo 1 toma su Ruta 1 |
-| **q3** | `x_1_1` | Flujo de Fondo 1 | `1` si Fondo 1 toma su Ruta 2 |
-| **q4** | `x_2_0` | Flujo de Fondo 2 | `1` si Fondo 2 toma su Ruta 1 |
-| **q5** | `x_2_1` | Flujo de Fondo 2 | `1` si Fondo 2 toma su Ruta 2 |
+| Qubit  | Variable | Flujo             | Significado                                        |
+| ------ | -------- | ----------------- | -------------------------------------------------- |
+| **q0** | `x_0_0`  | Usuario principal | `1` si toma la Ruta 1 (más rápida individualmente) |
+| **q1** | `x_0_1`  | Usuario principal | `1` si toma la Ruta 2 (vía alternativa)            |
+| **q2** | `x_1_0`  | Flujo de Fondo 1  | `1` si Fondo 1 toma su Ruta 1                      |
+| **q3** | `x_1_1`  | Flujo de Fondo 1  | `1` si Fondo 1 toma su Ruta 2                      |
+| **q4** | `x_2_0`  | Flujo de Fondo 2  | `1` si Fondo 2 toma su Ruta 1                      |
+| **q5** | `x_2_1`  | Flujo de Fondo 2  | `1` si Fondo 2 toma su Ruta 2                      |
 
 ### Función de Costo Cuadrática
 1. **Término Lineal ($C_{i,k}$):** Suma del tiempo base de viaje de las aristas en la ruta candidata $k$ del flujo $i$.
@@ -65,14 +66,14 @@ $$\text{Total variables} = 3 \text{ flujos} \times 2 \text{ rutas} = 6 \text{ qu
 ### Mapa de Lima y Parámetros Geográficos
 Los nodos representan distritos de Lima (los IDs de la API no cambian) y cada arista se parametriza con longitud, velocidad y carriles:
 
-| Nodo | Distrito | Lat, Lon |
-|---|---|---|
-| `NODO_A` | Callao | -12.057, -77.118 |
-| `NODO_B` | Los Olivos | -11.990, -77.070 |
-| `NODO_C` | Cercado de Lima | -12.046, -77.043 |
-| `NODO_D` | San Isidro | -12.098, -77.037 |
+| Nodo     | Distrito               | Lat, Lon         |
+| -------- | ---------------------- | ---------------- |
+| `NODO_A` | Callao                 | -12.057, -77.118 |
+| `NODO_B` | Los Olivos             | -11.990, -77.070 |
+| `NODO_C` | Cercado de Lima        | -12.046, -77.043 |
+| `NODO_D` | San Isidro             | -12.098, -77.037 |
 | `NODO_E` | San Juan de Lurigancho | -12.003, -77.008 |
-| `NODO_F` | La Molina | -12.083, -76.942 |
+| `NODO_F` | La Molina              | -12.083, -76.942 |
 
 - `length_km = haversine(u, v) × 1.3` (factor de sinuosidad vial; las coordenadas son aproximadas).
 - `base_time (min) = length_km / speed_kmh × 60` (tiempo en flujo libre).
@@ -353,12 +354,12 @@ Reporta un evento dinámico en una arista específica (ej. accidente o atasco). 
 ```
 
 #### Tipos de Eventos Permitidos (`event_type`)
-| Evento | Multiplicador de Tiempo | Suma Fija de Tiempo | Multiplicador Penalización |
-|---|---|---|---|
-| `NORMAL` | $1.0\times$ | $+0.0$ min | $1.0\times$ |
-| `TRAFFIC_JAM` | $1.8\times$ | $+0.0$ min | $4.0\times$ |
-| `ROADWORK` | $1.5\times$ | $+0.0$ min | $6.0\times$ |
-| `ACCIDENT` | $1.0\times$ | $+5000.0$ min | $1.0\times$ |
+| Evento        | Multiplicador de Tiempo | Suma Fija de Tiempo | Multiplicador Penalización |
+| ------------- | ----------------------- | ------------------- | -------------------------- |
+| `NORMAL`      | $1.0\times$             | $+0.0$ min          | $1.0\times$                |
+| `TRAFFIC_JAM` | $1.8\times$             | $+0.0$ min          | $4.0\times$                |
+| `ROADWORK`    | $1.5\times$             | $+0.0$ min          | $6.0\times$                |
+| `ACCIDENT`    | $1.0\times$             | $+5000.0$ min       | $1.0\times$                |
 
 #### Contrato de Respuesta (200 OK)
 Retorna el estado completo y actualizado de la topología del grafo (idéntico al esquema de `GET /api/v1/topology`), reflejando el cambio de peso en la arista afectada y agregándola a `active_events`.
@@ -455,12 +456,12 @@ curl -X PUT "http://localhost:8000/api/v1/flows/background" \
 
 La API implementa validación estricta con Pydantic v2 y respuestas JSON consistentes:
 
-| Código | Significado | Causa Típica |
-|---|---|---|
-| `200 OK` | Operación exitosa | Petición procesada correctamente. |
-| `404 Not Found` | Recurso no encontrado | Arista o nodo inexistente en la red (`detail: "La arista NODO_A - NODO_F no existe"`). |
-| `422 Unprocessable Entity` | Error de validación de datos | `origin` y `destination` iguales, número de flujos distinto a 2, o `event_type` inválido. |
-| `500 Internal Server Error` | Error de ejecución | Fallo no recuperable (el backend cuenta con fallback automático de QAOA a NumPy para evitar fallos 500). |
+| Código                      | Significado                  | Causa Típica                                                                                             |
+| --------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `200 OK`                    | Operación exitosa            | Petición procesada correctamente.                                                                        |
+| `404 Not Found`             | Recurso no encontrado        | Arista o nodo inexistente en la red (`detail: "La arista NODO_A - NODO_F no existe"`).                   |
+| `422 Unprocessable Entity`  | Error de validación de datos | `origin` y `destination` iguales, número de flujos distinto a 2, o `event_type` inválido.                |
+| `500 Internal Server Error` | Error de ejecución           | Fallo no recuperable (el backend cuenta con fallback automático de QAOA a NumPy para evitar fallos 500). |
 
 Ejemplo de error 422:
 ```json
