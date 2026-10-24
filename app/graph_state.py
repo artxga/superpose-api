@@ -10,13 +10,17 @@ from . import config
 EdgeKey = tuple[str, str]
 
 
-class QNavError(Exception):
+class SuperposeError(Exception):
     """Error de dominio mapeado a una respuesta HTTP."""
 
     def __init__(self, status_code: int, message: str):
         super().__init__(message)
         self.status_code = status_code
         self.message = message
+
+
+# Alias de retrocompatibilidad
+QNavError = SuperposeError
 
 
 def edge_key(u: str, v: str) -> EdgeKey:

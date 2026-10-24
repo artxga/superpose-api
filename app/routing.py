@@ -6,7 +6,7 @@ import time
 import networkx as nx
 
 from . import config
-from .graph_state import GraphState, QNavError, edge_key, path_edges
+from .graph_state import GraphState, SuperposeError, edge_key, path_edges
 from .qubo_builder import Flow, build_qubo, pair_weight, path_time, shared_penalty
 from .schemas import OptimizeRequest
 from .solver import solve
@@ -15,7 +15,7 @@ from .solver import solve
 def _validate_nodes(graph: nx.Graph, *nodes: str) -> None:
     for n in nodes:
         if n not in graph:
-            raise QNavError(404, f"Nodo desconocido: {n}")
+            raise SuperposeError(404, f"Nodo desconocido: {n}")
 
 
 def _resolve_flows(graph: nx.Graph, req: OptimizeRequest, state: GraphState) -> list[Flow]:
@@ -29,7 +29,7 @@ def _resolve_flows(graph: nx.Graph, req: OptimizeRequest, state: GraphState) -> 
     for idx, (name, o, d, v) in enumerate(specs):
         _validate_nodes(graph, o, d)
         if o == d:
-            raise QNavError(422, f"El flujo {name} tiene origen y destino iguales")
+            raise SuperposeError(422, f"El flujo {name} tiene origen y destino iguales")
         flows.append(Flow(idx, name, o, d, v))
     return flows
 

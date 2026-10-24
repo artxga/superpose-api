@@ -17,7 +17,7 @@ from qiskit_optimization.converters import QuadraticProgramToQubo
 
 from . import config
 
-log = logging.getLogger("qnav.solver")
+log = logging.getLogger("superpose.solver")
 
 
 @dataclass

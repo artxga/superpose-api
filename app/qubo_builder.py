@@ -8,7 +8,7 @@ import networkx as nx
 from qiskit_optimization import QuadraticProgram
 
 from . import config
-from .graph_state import EdgeKey, QNavError, path_edges
+from .graph_state import EdgeKey, SuperposeError, path_edges
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ def candidate_paths(graph: nx.Graph, flow: Flow) -> list[list[str]]:
         paths = list(islice(nx.shortest_simple_paths(graph, flow.origin, flow.destination, weight="time"),
                             config.K_ROUTES))
     except (nx.NetworkXNoPath, nx.NodeNotFound) as exc:
-        raise QNavError(422, f"No hay ruta entre {flow.origin} y {flow.destination}") from exc
+        raise SuperposeError(422, f"No hay ruta entre {flow.origin} y {flow.destination}") from exc
     while len(paths) < config.K_ROUTES:
         paths.append(list(paths[0]))
     return paths
@@ -89,7 +89,7 @@ def build_qubo(graph: nx.Graph, flows: list[Flow]) -> QuboModel:
     max_coef = max([*clipped_lin.values(), *clipped_quad.values(), 1.0])
     scale = min(1.0, config.COEF_TARGET / max_coef)
 
-    qp = QuadraticProgram("qnav_routing")
+    qp = QuadraticProgram("superpose_routing")
     for n in names:
         qp.binary_var(n)
     qp.minimize(

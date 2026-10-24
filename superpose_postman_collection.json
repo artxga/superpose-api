@@ -1,0 +1,267 @@
+{
+  "info": {
+    "_postman_id": "a5e82b7d-6912-4c6b-9c71-29e7104b2a88",
+    "name": "Superpose API - Enrutamiento Híbrido Cuántico (QAOA)",
+    "description": "Colección Postman oficial para interactuar con la API REST de **Superpose**, backend híbrido clásico-cuántico desarrollado para la hackathon de IBM Quantum.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Topología de la Red",
+      "item": [
+        {
+          "name": "Obtener Topología Actual",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/topology",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "topology"]
+            },
+            "description": "Retorna los 6 nodos de la red, el estado actual de las aristas (tiempo, penalización, capacidad, carga actual y saturación) y la lista de eventos viales activos."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Optimización de Rutas (QAOA vs Dijkstra)",
+      "item": [
+        {
+          "name": "Optimizar Ruta (Flujos Predeterminados)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": \"NODO_A\",\n  \"destination\": \"NODO_F\",\n  \"vehicles\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route/optimize",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "route", "optimize"]
+            },
+            "description": "Ejecuta el solver cuántico QAOA con 6 qubits resolviendo la competencia de congestión cruzada frente a 2 flujos de fondo por defecto (B->F con 20 vehículos y A->E con 30 vehículos). Retorna la comparativa con la ruta egoísta de Dijkstra y telemetría cuántica."
+          },
+          "response": []
+        },
+        {
+          "name": "Optimizar Ruta (Flujos de Fondo Personalizados)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": \"NODO_A\",\n  \"destination\": \"NODO_F\",\n  \"vehicles\": 1,\n  \"background_flows\": [\n    {\n      \"origin\": \"NODO_B\",\n      \"destination\": \"NODO_F\",\n      \"vehicles\": 25\n    },\n    {\n      \"origin\": \"NODO_A\",\n      \"destination\": \"NODO_E\",\n      \"vehicles\": 35\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/route/optimize",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "route", "optimize"]
+            },
+            "description": "Permite especificar dinámicamente los dos flujos de fondo con orígenes, destinos y cantidades de vehículos personalizados para evaluar diferentes escenarios de tráfico."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Eventos Dinámicos en Vías",
+      "item": [
+        {
+          "name": "Reportar Atasco (TRAFFIC_JAM)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"NODO_B\",\n  \"target\": \"NODO_D\",\n  \"event_type\": \"TRAFFIC_JAM\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events/report",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "events", "report"]
+            },
+            "description": "Multiplica el tiempo base de viaje x1.8 y la penalización x4.0 en la arista indicada. Retorna la topología actualizada."
+          },
+          "response": []
+        },
+        {
+          "name": "Reportar Accidente (ACCIDENT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"NODO_C\",\n  \"target\": \"NODO_D\",\n  \"event_type\": \"ACCIDENT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events/report",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "events", "report"]
+            },
+            "description": "Suma +5000 minutos al tiempo de la arista. El algoritmo cuántico penaliza fuertemente el camino y evita pasar por esa vía."
+          },
+          "response": []
+        },
+        {
+          "name": "Reportar Obras (ROADWORK)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"NODO_A\",\n  \"target\": \"NODO_C\",\n  \"event_type\": \"ROADWORK\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events/report",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "events", "report"]
+            },
+            "description": "Multiplica el tiempo base x1.5 y la penalización x6.0 en la arista afectada."
+          },
+          "response": []
+        },
+        {
+          "name": "Restaurar Eventos (RESET)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/events/reset",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "events", "reset"]
+            },
+            "description": "Restablece todas las aristas de la red al estado NORMAL y limpia las cargas vehiculares."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Gestión de Flujos de Fondo",
+      "item": [
+        {
+          "name": "Guardar Flujos de Fondo en Memoria",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"background_flows\": [\n    {\n      \"origin\": \"NODO_C\",\n      \"destination\": \"NODO_F\",\n      \"vehicles\": 40\n    },\n    {\n      \"origin\": \"NODO_B\",\n      \"destination\": \"NODO_E\",\n      \"vehicles\": 15\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/flows/background",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "flows", "background"]
+            },
+            "description": "Fija en memoria los flujos de fondo por defecto para todas las optimizaciones subsiguientes."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-"""Aplicación FastAPI de Q-Nav."""
+"""Aplicación FastAPI de Superpose."""
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from . import routing
-from .graph_state import QNavError, state
+from .graph_state import SuperposeError, state
 from .qubo_builder import Flow, build_qubo
 from .schemas import BackgroundFlowsRequest, EventReport, OptimizeRequest, OptimizeResponse
 from .solver import solve
@@ -25,22 +25,22 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="Q-Nav API",
-    description="Optimización híbrida clásica-cuántica de rutas con QAOA (Qiskit).",
+    title="Superpose API",
+    description="Motor híbrido clásico-cuántico de optimización y enrutamiento dinámico de tráfico con QAOA (Qiskit).",
     version="1.0.0",
     lifespan=lifespan,
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
-@app.exception_handler(QNavError)
-async def qnav_error_handler(_: Request, exc: QNavError):
+@app.exception_handler(SuperposeError)
+async def superpose_error_handler(_: Request, exc: SuperposeError):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
 
 
 @app.get("/", include_in_schema=False)
 def root():
-    return {"service": "Q-Nav", "docs": "/docs"}
+    return {"service": "Superpose", "docs": "/docs"}
 
 
 @app.get("/api/v1/topology", tags=["topology"])

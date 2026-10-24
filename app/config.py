@@ -1,4 +1,4 @@
-"""Constantes de configuración de Q-Nav."""
+"""Constantes de configuración de Superpose."""
 
 # --- Modelo QUBO -----------------------------------------------------------
 K_ROUTES = 2                 # rutas candidatas por flujo

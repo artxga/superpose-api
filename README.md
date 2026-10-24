@@ -1,6 +1,6 @@
-# Q-Nav – API REST Híbrida Clásica-Cuántica (QAOA)
+# Superpose – API REST Híbrida Clásica-Cuántica (QAOA)
 
-**Q-Nav** es un motor de enrutamiento dinámico y optimización de tráfico urbano desarrollado para la hackathon de IBM Quantum. Combina la teoría de grafos clásica (`networkx`) con computación cuántica variacional (**QAOA** vía `qiskit`, `qiskit-aer` y `qiskit-optimization`) para resolver el problema de congestión vehicular cruzada reduciendo la latencia a menos de **250 ms**.
+**Superpose** es un motor de enrutamiento dinámico y optimización de tráfico urbano desarrollado para la hackathon de IBM Quantum. Combina la teoría de grafos clásica (`networkx`) con computación cuántica variacional (**QAOA** vía `qiskit`, `qiskit-aer` y `qiskit-optimization`) para resolver el problema de congestión vehicular cruzada reduciendo la latencia a menos de **250 ms**.
 
 ---
 
@@ -25,6 +25,7 @@ uvicorn app.main:app --reload --port 8000
 
 - **Swagger UI interactivo:** [http://localhost:8000/docs](http://localhost:8000/docs)
 - **ReDoc alternativo:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **Colección Postman:** Archivo listo para importar en [superpose_postman_collection.json](file:///Volumes/HIKSEMI%20Media/Repos/Projects/ibm-quantum/superpose_postman_collection.json)
 
 ### Ejecución de Pruebas Automatizadas
 ```bash
@@ -36,7 +37,7 @@ pytest -v
 ## 🧠 Arquitectura Cuántica y Modelo QUBO
 
 ### Mapeo de 6 Qubits (Variables Binarias)
-En lugar de asignar qubits ineficientemente por arista ($|E| \gg 6$), Q-Nav extrae las $K=2$ rutas candidatas más cortas (`networkx.shortest_simple_paths`) para $N=3$ flujos de tráfico concurrentes (1 usuario + 2 flujos de fondo):
+En lugar de asignar qubits ineficientemente por arista ($|E| \gg 6$), Superpose extrae las $K=2$ rutas candidatas más cortas (`networkx.shortest_simple_paths`) para $N=3$ flujos de tráfico concurrentes (1 usuario + 2 flujos de fondo):
 $$\text{Total variables} = 3 \text{ flujos} \times 2 \text{ rutas} = 6 \text{ qubits } (x_{0,0}, x_{0,1}, x_{1,0}, x_{1,1}, x_{2,0}, x_{2,1})$$
 
 | Qubit | Variable | Flujo | Significado |
